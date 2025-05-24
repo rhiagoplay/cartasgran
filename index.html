@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ganhe Curtidas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #833ab4, #fd1d1d, #fcb045);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      flex-direction: column;
+      padding: 20px;
+    }
+    .screen {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      display: none;
+    }
+    .screen.active { display: block; }
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #833ab4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #6a2c93; }
+    .link-btn {
+      background: none;
+      color: #833ab4;
+      text-decoration: underline;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    #cardsContainer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px auto;
+    }
+    .card {
+      width: 90px;
+      height: 90px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #fcb045;
+      border-radius: 10px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+    }
+    .card.opened {
+      background: white;
+      color: #833ab4;
+      border: 2px solid #833ab4;
+    }
+    #result {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+      background: #833ab4;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<audio id="som15" src="https://www.soundjay.com/button/sounds/button-1.mp3" preload="auto"></audio>
+<audio id="som25" src="https://www.soundjay.com/button/sounds/button-16.mp3" preload="auto"></audio>
+<audio id="som100" src="https://www.soundjay.com/button/sounds/button-10.mp3" preload="auto"></audio>
+<audio id="som1000" src="https://www.soundjay.com/button/sounds/button-4.mp3" preload="auto"></audio>
+<div id="loginScreen" class="screen active">
+  <h2>Ganhe Curtidas</h2>
+  <input id="loginUser" placeholder="Usuário">
+  <input id="loginPass" type="password" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+  <button class="link-btn" onclick="showScreen('registerScreen')">Não tem conta? Cadastre-se</button>
+</div>
+<div id="registerScreen" class="screen">
+  <div id="successMessage" style="display:none;background:#4BB543;color:white;padding:10px;border-radius:5px;text-align:center;">✅ Cadastro feito com sucesso! Redirecionando...</div>
+  <h2>Cadastro</h2>
+  <input id="regUser" placeholder="Usuário">
+  <input id="regPass" type="password" placeholder="Senha">
+  <button onclick="register()">Cadastrar</button>
+  <button class="link-btn" onclick="showScreen('loginScreen')">Já tem conta? Faça login</button>
+</div>
+<div id="gameScreen" class="screen">
+  <h2>Abra uma carta</h2>
+  <p id="welcome"></p>
+  <div id="cardsContainer"></div>
+  <div id="result"></div>
+  <button onclick="logout()">Sair</button>
+</div>
+<script>
+  const PRIZES = [50, 80, 90, 200, 100, 150, 250, 300, 1000, 120, 25, 15];
+  const DRAW_THRESHOLD = 100000;
+  let users = JSON.parse(localStorage.getItem('users')) || [];
+  if (!users.some(u => u.user === 'thiago')) {
+    users.push({ user: 'thiago', pass: '1991' });
+    localStorage.setItem('users', JSON.stringify(users));
+  }
+  let currentUser = null;
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function login() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+    users = JSON.parse(localStorage.getItem('users')) || [];
+    currentUser = users.find(u => u.user === user && u.pass === pass);
+    if (!currentUser) return alert("Usuário ou senha incorretos");
+    document.getElementById('welcome').textContent = `Bem-vindo, ${user}`;
+    showScreen('gameScreen');
+    buildCards();
+  }
+
+  function register() {
+    const user = document.getElementById('regUser').value;
+    const pass = document.getElementById('regPass').value;
+    if (!user || !pass) return alert("Preencha todos os campos");
+    if (users.some(u => u.user === user)) return alert("Usuário já existe");
+    users.push({ user, pass });
+    localStorage.setItem('users', JSON.stringify(users));
+    document.getElementById('successMessage').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('successMessage').style.display = 'none';
+      showScreen('loginScreen');
+    }, 3000);
+  }
+
+  function logout() {
+    currentUser = null;
+    showScreen('loginScreen');
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('cardsContainer').innerHTML = '';
+  }
+
+  function tocarSomPorPremio(valor) {
+    if (valor === 15) {
+      document.getElementById('som15').play();
+    } else if (valor === 25) {
+      document.getElementById('som25').play();
+    } else if (valor === 1000) {
+      document.getElementById('som1000').play();
+    } else {
+      document.getElementById('som100').play();
+    }
+  }
+
+  function buildCards() {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = '';
+    PRIZES.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.prize = p;
+      card.textContent = '?';
+      card.onclick = onCardClick;
+      container.appendChild(card);
+    });
+  }
+
+  function onCardClick(e) {
+    const card = e.currentTarget;
+    if (card.classList.contains('opened')) return;
+
+    const now = new Date();
+    const lastDraw = currentUser.lastDraw ? new Date(currentUser.lastDraw) : null;
+    if (lastDraw && (now - lastDraw) < 86400000) {
+      const horasRestantes = Math.ceil((86400000 - (now - lastDraw)) / 3600000);
+      const result = document.getElementById('result');
+      result.innerHTML = `⏳ Você já abriu uma carta. Aguarde 24 horas para abrir novamente. <br> Tempo restante: ${horasRestantes} hora(s).`;
+      result.style.display = 'block';
+      return;
+    }
+
+    const valor = Number(card.dataset.prize);
+    let drawCount = parseInt(localStorage.getItem('drawCount') || '0') + 1;
+    localStorage.setItem('drawCount', drawCount);
+
+    if (valor === 1000 && drawCount < DRAW_THRESHOLD) {
+      const restantes = DRAW_THRESHOLD - drawCount;
+      document.getElementById('result').innerHTML = `🔒 O prêmio de 1000 curtidas será liberado após ${DRAW_THRESHOLD} giros. Faltam ${restantes} giros.`;
+      document.getElementById('result').style.display = 'block';
+      return;
+    }
+
+    tocarSomPorPremio(valor);
+    card.classList.add('opened');
+    card.textContent = valor;
+
+    const result = document.getElementById('result');
+    result.innerHTML = `🎉 Você ganhou ${valor} curtidas!<br><br>📩 Entre em contato com nossa equipe e envie o link da postagem que deseja receber as curtidas.<br><br><a href='https://wa.me/5579999875145?text=Olá!%20Ganhei%20${valor}%20curtidas%20no%20site%20e%20desejo%20recebê-las%20nesta%20postagem:%20' target='_blank' style='display:inline-block;margin-top:10px;padding:10px 20px;background:#25D366;color:white;border-radius:5px;text-decoration:none;font-weight:bold;'>📲 Falar com Suporte via WhatsApp</a>`;
+    result.style.display = 'block';
+
+    currentUser.lastDraw = now.toISOString();
+    users = users.map(u => u.user === currentUser.user ? { ...u, lastDraw: currentUser.lastDraw } : u);
+    localStorage.setItem('users', JSON.stringify(users));
+  }
+
+  window.onload = () => showScreen('loginScreen');
+</script>
+</body>
+</html>
